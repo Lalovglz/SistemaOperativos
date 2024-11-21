@@ -1,0 +1,35 @@
+#include <stdio.h>
+
+int restar(int den, int fue)
+{
+    if (fue > den)
+        return 0;
+
+    return 1 + restar(den - fue, fue);
+}
+
+int main()
+{
+    int den, fue;
+
+    printf("Ingrese el numero base: ");
+    scanf("%d", &den);
+    printf("En cuantas partes desea dividirlo: ");
+    scanf("%d", &fue);
+
+    if (fue == 0)
+        printf("No se puede dividir entre 0");
+    if (den == 0)
+        printf("Su resultado es 0");
+    if (fue <= den && fue > 0)
+    {
+        int res = restar(den, fue);
+        printf("\n%d dividido en %d es= %d\n", den, fue, res);
+    }
+    if (den < fue && den != 0)
+    {
+        printf("Su resultado es decimal");
+    }
+
+    return 0;
+}
