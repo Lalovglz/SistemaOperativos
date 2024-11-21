@@ -1,0 +1,37 @@
+#include <stdio.h>
+
+int mult(int base, int a)
+{
+    if (a == 0)
+    {
+        return 0;
+    }
+    return base + mult(base, a - 1);
+}
+
+int potencia(int base, int exp)
+{
+
+    if (exp == 0)
+        return 1;
+    if (base == 0)
+        return 0;
+
+    return mult(base, potencia(base, exp - 1));
+}
+
+int main()
+{
+    int base, exp, res = 0;
+
+    printf("Ingrese la base: ");
+    scanf("%i", &base);
+    printf("Ingrese el exponente: ");
+    scanf("%i", &exp);
+
+    res = potencia(base, exp);
+
+    printf("\nEl resultado es %i\n", res);
+
+    return 0;
+}
