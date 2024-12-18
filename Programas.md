@@ -1277,6 +1277,430 @@ int main()
 ```
 
 
+# Manejador de dispositivos
+
+```C
+#include <stdio.h>
+#include <string.h>
+
+typedef struct {
+    char nombre[30];
+    int estado;  
+    void (*encender)(char* nombre);  
+    void (*apagar)(char* nombre);    
+    void (*mostrarEstado)(char* nombre); 
+} Dispositivo;
+
+void encenderDispositivo(char* nombre) {
+    printf("%s: El dispositivo esta ENCENDIDO.\n", nombre);
+}
+
+void apagarDispositivo(char* nombre) {
+    printf("%s: El dispositivo esta APAGADO.\n", nombre);
+}
+
+void mostrarEstadoDispositivo(char* nombre) {
+    printf("%s: Mostrando el estado del dispositivo...\n", nombre);
+}
+
+void inicializarDispositivo(Dispositivo* dispositivo, const char* nombre) {
+    strncpy(dispositivo->nombre, nombre, sizeof(dispositivo->nombre) - 1);
+    dispositivo->estado = 0; 
+    dispositivo->encender = encenderDispositivo;
+    dispositivo->apagar = apagarDispositivo;
+    dispositivo->mostrarEstado = mostrarEstadoDispositivo;
+}
+
+int main() {
+    
+    Dispositivo dispositivos[3];
+
+    inicializarDispositivo(&dispositivos[0], "USB");
+    inicializarDispositivo(&dispositivos[1], "Mouse");
+    inicializarDispositivo(&dispositivos[2], "Monitor");
+
+    printf("Operaciones sobre dispositivos:\n");
+
+    dispositivos[0].encender(dispositivos[0].nombre);
+    dispositivos[2].encender(dispositivos[2].nombre);
+    dispositivos[1].encender(dispositivos[1].nombre);
+    
+    dispositivos[1].mostrarEstado(dispositivos[1].nombre);
+    dispositivos[0].mostrarEstado(dispositivos[0].nombre);
+    dispositivos[2].mostrarEstado(dispositivos[2].nombre);
+
+    dispositivos[2].apagar(dispositivos[2].nombre);
+    dispositivos[1].apagar(dispositivos[1].nombre);
+    dispositivos[0].apagar(dispositivos[0].nombre);
+    
+    
+    
+
+    return 0;
+}
+```
+
+# Flujo disco magnetico
+
+1. Inicio
+
+* Se inicia el proceso de lectura.
+
+2. Solicitar acceso al archivo
+
+* El sistema operativo recibe una solicitud de acceso al archivo.
+
+* El sistema verifica si el archivo existe en el disco.
+
+3. Verificación de disponibilidad
+
+* El sistema comprueba si el disco está disponible para la lectura.
+
+* Si el disco está ocupado (por ejemplo, en uso por otro proceso), se espera hasta que esté libre.
+
+4. Acceder al controlador de disco
+
+* El sistema operativo pasa la solicitud al controlador de disco.
+
+5. Localización del archivo en el disco
+
+* El controlador de disco busca la ubicación física del archivo en el disco magnético. Esto se realiza mediante una tabla de asignación de archivos (FAT) o un sistema de gestión de archivos similar.
+
+6. Movimiento del cabezal de lectura/escritura
+
+* El controlador mueve el cabezal de lectura/escritura a la pista donde se encuentra el archivo.
+
+7. Lectura de los datos
+
+* Una vez el cabezal está en la pista correcta, comienza la lectura de los bloques de datos desde el disco magnético.
+
+8. Transferencia de datos al sistema
+
+* Los datos leídos se transfieren al buffer de memoria o directamente al espacio de memoria que el proceso necesita.
+
+9. Fin de la lectura
+
+* Una vez que todos los datos han sido leídos, el proceso de lectura se completa.
+
+10. Fin
+
+# Programa disco magnetico
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define DISCO_LIBRE 1
+#define DISCO_OCUPADO 0
+#define MAX_ARCHIVOS 5
+#define TAMANO_MAX_ARCHIVO 1024  // En bytes
+
+typedef struct {
+    char nombre[50];
+    char datos[TAMANO_MAX_ARCHIVO];  
+    int ocupado;  
+} Archivo;
+
+typedef struct {
+    Archivo archivos[MAX_ARCHIVOS];
+    int estado_disco;  
+} Disco;
+
+void inicializar_disco(Disco* disco) {
+    disco->estado_disco = DISCO_LIBRE;
+    for (int i = 0; i < MAX_ARCHIVOS; i++) {
+        disco->archivos[i].ocupado = 0;
+    }
+}
+
+int buscar_archivo(Disco* disco, const char* nombre) {
+    for (int i = 0; i < MAX_ARCHIVOS; i++) {
+        if (disco->archivos[i].ocupado && strcmp(disco->archivos[i].nombre, nombre) == 0) {
+            return i;  
+        }
+    }
+    return -1;  
+}
+
+void leer_archivo(Disco* disco, const char* nombre) {
+    if (disco->estado_disco == DISCO_OCUPADO) {
+        printf("El disco está ocupado, esperando...\n");
+        return;
+    }
+
+    disco->estado_disco = DISCO_OCUPADO;
+
+    int indice = buscar_archivo(disco, nombre);
+    if (indice == -1) {
+        printf("Archivo no encontrado en el disco.\n");
+    } else {
+        printf("Leyendo el archivo: %s\n", disco->archivos[indice].nombre);
+        printf("Contenido del archivo: %s\n", disco->archivos[indice].datos);
+    }
+
+    disco->estado_disco = DISCO_LIBRE;
+}
+
+void crear_archivo(Disco* disco, const char* nombre, const char* contenido) {
+    for (int i = 0; i < MAX_ARCHIVOS; i++) {
+        if (!disco->archivos[i].ocupado) {
+            strcpy(disco->archivos[i].nombre, nombre);
+            strcpy(disco->archivos[i].datos, contenido);
+            disco->archivos[i].ocupado = 1;
+            printf("Archivo '%s' creado con exito.\n", nombre);
+            return;
+        }
+    }
+    printf("No hay espacio disponible para crear un nuevo archivo.\n");
+}
+
+int main() {
+    Disco disco;
+    inicializar_disco(&disco);
+
+    crear_archivo(&disco, "documento1.txt", "Este es el contenido del documento 1.");
+    crear_archivo(&disco, "documento2.txt", "Contenido del documento 2. Informacion importante.");
+
+    leer_archivo(&disco, "documento1.txt");
+    leer_archivo(&disco, "documento2.txt");
+    leer_archivo(&disco, "documento_inexistente.txt");
+
+    return 0;
+}
+```
+
+# E/S asincronas con archivos
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <windows.h>  
+
+#define BUFFER_SIZE 1024 
+#define FILENAME "archivo_simulado.txt"
+
+char buffer[BUFFER_SIZE];
+
+DWORD WINAPI write_async(LPVOID arg) {
+    FILE* archivo = fopen(FILENAME, "w");  
+    if (archivo == NULL) {
+        perror("Error al abrir el archivo para escritura");
+        return 1;
+    }
+
+    strcpy(buffer, "Hola, Esta es una simulacion de E/S asincronica en C.");
+    printf("Simulando escritura asincrona... escribiendo en el archivo: %s\n", buffer);
+
+    Sleep(2000); 
+
+    fprintf(archivo, "%s\n", buffer);
+    fclose(archivo);
+
+    printf("Simulacion de escritura completada.\n");
+    return 0;
+}
+
+DWORD WINAPI read_async(LPVOID arg) {
+    FILE* archivo = fopen(FILENAME, "r");  
+    if (archivo == NULL) {
+        perror("Error al abrir el archivo para lectura");
+        return 1;
+    }
+
+    Sleep(1000);  
+
+    printf("Simulando lectura asincrona... leyendo desde el archivo...\n");
+    fgets(buffer, BUFFER_SIZE, archivo);
+    fclose(archivo);
+
+    printf("Simulacion de lectura completada. Contenido leido: %s\n", buffer);
+    return 0;
+}
+
+int main() {
+    HANDLE hilo_lectura, hilo_escritura;
+
+    hilo_escritura = CreateThread(NULL, 0, write_async, NULL, 0, NULL);
+    if (hilo_escritura == NULL) {
+        perror("Error al crear el hilo de escritura");
+        return 1;
+    }
+
+    hilo_lectura = CreateThread(NULL, 0, read_async, NULL, 0, NULL);
+    if (hilo_lectura == NULL) {
+        perror("Error al crear el hilo de lectura");
+        return 1;
+    }
+
+    WaitForSingleObject(hilo_escritura, INFINITE);
+    WaitForSingleObject(hilo_lectura, INFINITE);
+
+    CloseHandle(hilo_escritura);
+    CloseHandle(hilo_lectura);
+
+    return 0;
+}
+```
+
+# Elevator (SCAN)
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+int comparar_enteros(const void* a, const void* b) {
+    return (*(int*)a - *(int*)b);
+}
+
+void algoritmo_scan(int solicitudes[], int num_solicitudes, int cabezal, int tam_disco, int direccion) {
+    int movimiento_total = 0; 
+    int distancia, pista_actual;
+    int izquierda[num_solicitudes], derecha[num_solicitudes];
+    int contador_izquierda = 0, contador_derecha = 0;
+
+    for (int i = 0; i < num_solicitudes; i++) {
+        if (solicitudes[i] < cabezal) {
+            izquierda[contador_izquierda++] = solicitudes[i];
+        } else {
+            derecha[contador_derecha++] = solicitudes[i];
+        }
+    }
+
+    qsort(izquierda, contador_izquierda, sizeof(int), comparar_enteros);
+    qsort(derecha, contador_derecha, sizeof(int), comparar_enteros);
+
+    printf("Orden de acceso a los cilindros: ");
+
+    if (direccion == 1) {
+        for (int i = 0; i < contador_derecha; i++) {
+            pista_actual = derecha[i];
+            printf("%d ", pista_actual);
+            distancia = abs(pista_actual - cabezal);
+            movimiento_total += distancia;
+            cabezal = pista_actual;
+        }
+
+        if (cabezal != tam_disco - 1) {
+            printf("%d ", tam_disco - 1);
+            movimiento_total += abs(tam_disco - 1 - cabezal);
+            cabezal = tam_disco - 1;
+        }
+
+        for (int i = contador_izquierda - 1; i >= 0; i--) {
+            pista_actual = izquierda[i];
+            printf("%d ", pista_actual);
+            distancia = abs(pista_actual - cabezal);
+            movimiento_total += distancia;
+            cabezal = pista_actual;
+        }
+    } else {
+        for (int i = contador_izquierda - 1; i >= 0; i--) {
+            pista_actual = izquierda[i];
+            printf("%d ", pista_actual);
+            distancia = abs(pista_actual - cabezal);
+            movimiento_total += distancia;
+            cabezal = pista_actual;
+        }
+
+        if (cabezal != 0) {
+            printf("0 ");
+            movimiento_total += cabezal;
+            cabezal = 0;
+        }
+
+        for (int i = 0; i < contador_derecha; i++) {
+            pista_actual = derecha[i];
+            printf("%d ", pista_actual);
+            distancia = abs(pista_actual - cabezal);
+            movimiento_total += distancia;
+            cabezal = pista_actual;
+        }
+    }
+
+    printf("\nMovimiento total del cabezal: %d cilindros\n", movimiento_total);
+}
+
+int main() {
+    int num_solicitudes, cabezal, tam_disco, direccion;
+
+    printf("Introduce el numero de solicitudes de cilindros: ");
+    scanf("%d", &num_solicitudes);
+
+    int solicitudes[num_solicitudes];
+    printf("Introduce las solicitudes de cilindros:\n");
+    for (int i = 0; i < num_solicitudes; i++) {
+        scanf("%d", &solicitudes[i]);
+    }
+
+    printf("Introduce la posicion inicial del cabezal: ");
+    scanf("%d", &cabezal);
+
+    printf("Introduce el tamanio del disco (numero total de cilindros): ");
+    scanf("%d", &tam_disco);
+
+    printf("Introduce la direccion inicial (0 -> abajo, 1 -> arriba): ");
+    scanf("%d", &direccion);
+
+    algoritmo_scan(solicitudes, num_solicitudes, cabezal, tam_disco, direccion);
+
+    return 0;
+}
+```
+
+# Multiples dispositivos
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+void teclado(char* buffer) {
+    printf("[Teclado] Capturando datos del usuario...\n");
+    strcpy(buffer, "Datos ingresados desde el teclado");
+    sleep(1); 
+    printf("[Teclado] Datos listos para enviar: %s\n", buffer);
+}
+
+void disco_duro(const char* input_buffer, char* disco_buffer) {
+    printf("[Disco Duro] Recibiendo datos del teclado...\n");
+    strcpy(disco_buffer, input_buffer);
+    sleep(2); 
+    printf("[Disco Duro] Datos guardados en el disco: %s\n", disco_buffer);
+}
+
+void impresora(const char* disco_buffer) {
+    printf("[Impresora] Recibiendo datos del disco duro...\n");
+    sleep(1);
+    printf("[Impresora] Imprimiendo: %s\n", disco_buffer);
+}
+
+void flujo_interaccion() {
+    printf("\n[Flujo de Interacción]:\n");
+    printf("Teclado ---> Disco Duro ---> Impresora\n");
+    printf("   ^_____________________________|\n");
+    printf("El teclado pasa datos al disco, y la impresora los utiliza.\n\n");
+}
+
+int main() {
+    char teclado_buffer[1024];   
+    char disco_buffer[1024];   
+
+    flujo_interaccion();
+
+    teclado(teclado_buffer);
+
+    disco_duro(teclado_buffer, disco_buffer);
+
+    impresora(disco_buffer);
+
+    printf("\n[Simulación completada]: Todos los dispositivos han interactuado.\n");
+    return 0;
+}
+```
+
 # La memoria caché en los sistemas operativos modernos
 
 
